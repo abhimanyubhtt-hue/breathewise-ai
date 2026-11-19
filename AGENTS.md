@@ -34,3 +34,4 @@ use the editor.
 - Fetch public environmental data through a server function; return missing readings as null to prevent invented live measurements.
 - Save private household data and invoke Gemini through authenticated server functions; owner-scoped RLS isolates each household.
 - Use the gateway's generated model contracts for assistant calls to keep secrets server-only and requests type-safe.
+- Dehydrate and hydrate Query caches with the router SSR integration so loader-fetched forecasts match the first browser render.
