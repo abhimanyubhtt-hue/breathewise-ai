@@ -28,3 +28,9 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Application architecture
+- Keep domain calculations in the feature domain module, shared state in its provider, and content views in leaf routes so navigation and calculations remain independently testable.
+- Fetch public environmental data through a server function; return missing readings as null to prevent invented live measurements.
+- Save private household data and invoke Gemini through authenticated server functions; owner-scoped RLS isolates each household.
+- Use the gateway's generated model contracts for assistant calls to keep secrets server-only and requests type-safe.

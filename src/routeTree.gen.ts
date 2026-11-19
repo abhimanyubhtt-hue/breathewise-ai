@@ -10,33 +10,115 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AirQualityRouteImport } from './routes/air-quality'
+import { Route as AssistantRouteImport } from './routes/assistant'
+import { Route as FamilyRouteImport } from './routes/family'
+import { Route as ImpactRouteImport } from './routes/impact'
+import { Route as IndoorRouteImport } from './routes/indoor'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AirQualityRoute = AirQualityRouteImport.update({
+  id: '/air-quality',
+  path: '/air-quality',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssistantRoute = AssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FamilyRoute = FamilyRouteImport.update({
+  id: '/family',
+  path: '/family',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImpactRoute = ImpactRouteImport.update({
+  id: '/impact',
+  path: '/impact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndoorRoute = IndoorRouteImport.update({
+  id: '/indoor',
+  path: '/indoor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/air-quality': typeof AirQualityRoute
+  '/assistant': typeof AssistantRoute
+  '/family': typeof FamilyRoute
+  '/impact': typeof ImpactRoute
+  '/indoor': typeof IndoorRoute
+  '/reset-password': typeof ResetPasswordRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/air-quality': typeof AirQualityRoute
+  '/assistant': typeof AssistantRoute
+  '/family': typeof FamilyRoute
+  '/impact': typeof ImpactRoute
+  '/indoor': typeof IndoorRoute
+  '/reset-password': typeof ResetPasswordRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/air-quality': typeof AirQualityRoute
+  '/assistant': typeof AssistantRoute
+  '/family': typeof FamilyRoute
+  '/impact': typeof ImpactRoute
+  '/indoor': typeof IndoorRoute
+  '/reset-password': typeof ResetPasswordRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/air-quality'
+    | '/assistant'
+    | '/family'
+    | '/impact'
+    | '/indoor'
+    | '/reset-password'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/air-quality'
+    | '/assistant'
+    | '/family'
+    | '/impact'
+    | '/indoor'
+    | '/reset-password'
+  id:
+    | '__root__'
+    | '/'
+    | '/air-quality'
+    | '/assistant'
+    | '/family'
+    | '/impact'
+    | '/indoor'
+    | '/reset-password'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AirQualityRoute: typeof AirQualityRoute
+  AssistantRoute: typeof AssistantRoute
+  FamilyRoute: typeof FamilyRoute
+  ImpactRoute: typeof ImpactRoute
+  IndoorRoute: typeof IndoorRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +130,59 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/air-quality': {
+      id: '/air-quality'
+      path: '/air-quality'
+      fullPath: '/air-quality'
+      preLoaderRoute: typeof AirQualityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assistant': {
+      id: '/assistant'
+      path: '/assistant'
+      fullPath: '/assistant'
+      preLoaderRoute: typeof AssistantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/family': {
+      id: '/family'
+      path: '/family'
+      fullPath: '/family'
+      preLoaderRoute: typeof FamilyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/impact': {
+      id: '/impact'
+      path: '/impact'
+      fullPath: '/impact'
+      preLoaderRoute: typeof ImpactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/indoor': {
+      id: '/indoor'
+      path: '/indoor'
+      fullPath: '/indoor'
+      preLoaderRoute: typeof IndoorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AirQualityRoute: AirQualityRoute,
+  AssistantRoute: AssistantRoute,
+  FamilyRoute: FamilyRoute,
+  ImpactRoute: ImpactRoute,
+  IndoorRoute: IndoorRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
