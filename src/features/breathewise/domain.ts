@@ -7,8 +7,49 @@ export const cities = [
   { name: "Chennai", lat: 13.0827, lon: 80.2707 },
   { name: "Lucknow", lat: 26.8467, lon: 80.9462 },
 ];
+
+export const pollutantKeys = ["pm25", "pm10", "no2", "ozone", "co", "so2"] as const;
+export type Pollutant = (typeof pollutantKeys)[number];
+export type PollutantReadings = Record<Pollutant, number | null>;
+export type PollutantIndices = Record<Pollutant, number | null>;
+export const pollutantLabels: Record<Pollutant, string> = {
+  pm25: "PM2.5",
+  pm10: "PM10",
+  no2: "NO₂",
+  ozone: "Ozone",
+  co: "CO",
+  so2: "SO₂",
+};
+
+export function isValidReading(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+export function deriveUsAqi(
+  concentrations: PollutantReadings,
+  indices: PollutantIndices,
+): { aqi: number | null; dominantPollutant: Pollutant | null; aqiByPollutant: PollutantIndices } {
+  const aqiByPollutant = Object.fromEntries(
+    pollutantKeys.map((key) => [
+      key,
+      isValidReading(concentrations[key]) && isValidReading(indices[key]) ? indices[key] : null,
+    ]),
+  ) as PollutantIndices;
+  const dominant = pollutantKeys.reduce<Pollutant | null>((highest, key) => {
+    const candidate = aqiByPollutant[key];
+    if (candidate === null) return highest;
+    return highest === null || candidate > (aqiByPollutant[highest] ?? -1) ? key : highest;
+  }, null);
+
+  return {
+    aqi: dominant === null ? null : Math.round(aqiByPollutant[dominant] ?? 0),
+    dominantPollutant: dominant,
+    aqiByPollutant,
+  };
+}
+
 export function aqiStatus(value: number | null) {
-  if (value === null)
+  if (!isValidReading(value))
     return {
       label: "Unavailable",
       tone: "muted",
@@ -39,15 +80,13 @@ export function aqiStatus(value: number | null) {
     return {
       label: "Unhealthy",
       tone: "warning",
-      advice:
-        "Reduce prolonged outdoor exertion. Children and older adults should choose indoor activities.",
+      advice: "Reduce prolonged outdoor exertion. Children and older adults should choose indoor activities.",
     };
   if (value <= 300)
     return {
       label: "Very unhealthy",
       tone: "danger",
-      advice:
-        "Avoid strenuous outdoor activity. Keep vulnerable family members indoors and use filtered indoor air.",
+      advice: "Avoid strenuous outdoor activity. Keep vulnerable family members indoors and use filtered indoor air.",
     };
   return {
     label: "Hazardous",
@@ -55,28 +94,60 @@ export function aqiStatus(value: number | null) {
     advice: "Avoid outdoor physical activity. Stay in a room with filtered air when possible.",
   };
 }
-export const factors = { car: 0.192, metro: 0.041, cycling: 0, carpool: 0.064 };
+
+export const factors = { car: 0.192, metro: 0.041, cycling: 0, carpool: 0.064 } as const;
 export function emissions(distance: number, mode: keyof typeof factors) {
-  return Math.max(0, distance) * factors[mode];
+  return Number.isFinite(distance) ? Math.max(0, distance) * factors[mode] : 0;
 }
+
+export function clampMemberCount(value: number, minimum = 0) {
+  if (!Number.isFinite(value)) return minimum;
+  return Math.max(minimum, Math.min(20, Math.trunc(value)));
+}
+
+export function clampJourneyDistance(value: number) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(500, value));
+}
+
 export type Hour = {
   time: string;
   aqi: number | null;
-  pm25: number | null;
-  pm10: number | null;
-  no2: number | null;
-  ozone: number | null;
-};
+  dominantPollutant: Pollutant | null;
+  aqiByPollutant: PollutantIndices;
+} & PollutantReadings;
+
 export function bestWindow(hours: Hour[], vulnerable: boolean) {
   const valid = hours
     .slice(0, 24)
-    .filter(
-      (h) =>
-        h.aqi !== null && Number(h.time.slice(11, 13)) >= 7 && Number(h.time.slice(11, 13)) <= 18,
-    );
-  const best = valid.sort((a, b) => (a.aqi ?? Infinity) - (b.aqi ?? Infinity))[0];
-  return best && (best.aqi ?? Infinity) <= (vulnerable ? 100 : 150) ? best : null;
+    .filter((hour) => {
+      const localHour = Number(hour.time.slice(11, 13));
+      return (
+        isValidReading(hour.aqi) &&
+        Number.isInteger(localHour) &&
+        localHour >= 7 &&
+        localHour <= 18
+      );
+    })
+    .sort((a, b) => (a.aqi ?? Infinity) - (b.aqi ?? Infinity));
+  const best = valid[0];
+  return best && best.aqi !== null && best.aqi <= (vulnerable ? 100 : 150) ? best : null;
 }
+
+export type Exercise = "walking" | "running" | "yoga";
+export function planDailyActivity(hours: Hour[], exercise: Exercise, vulnerable: boolean) {
+  const window = bestWindow(hours, vulnerable);
+  return window
+    ? {
+        mode: "outdoor" as const,
+        exercise,
+        time: window.time,
+        aqi: window.aqi,
+        dominantPollutant: window.dominantPollutant,
+      }
+    : { mode: "indoor" as const, exercise, time: null, aqi: null, dominantPollutant: null };
+}
+
 export type Message = { role: "user" | "assistant"; content: string };
 export type Household = {
   name: string;
@@ -84,7 +155,7 @@ export type Household = {
   adults: number;
   seniors: number;
   commute: keyof typeof factors;
-  exercise: "walking" | "running" | "yoga";
+  exercise: Exercise;
   checklist: Record<string, boolean>;
   trips: { date: string; distance: number; mode: keyof typeof factors }[];
   messages: Message[];
