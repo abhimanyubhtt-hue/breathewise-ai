@@ -1,6 +1,7 @@
 # BreatheWise AI
-- [x] Cohesive dashboard and six working views
-- [x] Live Open-Meteo air and weather forecasts, city and geolocation selection
-- [x] Private family profiles, planner, indoor checklists, and transport estimates
-- [x] Secure assistant, English/Hindi interface, and account controls
-- [x] Tests, desktop/mobile verification, and saved source
+- [ ] Audit and correct pollutant-based US AQI, dominant pollutant, and US/CPCB labels
+- [ ] Add explicit weather loading, error, unavailable, and actual-reading states
+- [ ] Include selected location, live readings, and family preferences in assistant context
+- [ ] Improve family input validation and forecast-personalized routines
+- [ ] Verify Green Impact factors and explain estimation assumptions
+- [ ] Verify graceful failures, accessibility, responsive behavior, and regression tests
