@@ -1,14 +1,18 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { deriveUsAqi, pollutantKeys, type Hour, type PollutantIndices, type PollutantReadings } from "./domain";
+import {
+  deriveUsAqi,
+  pollutantKeys,
+  type AssistantEnvironment,
+  type AssistantFamily,
+  type Hour,
+  type PollutantIndices,
+  type PollutantReadings,
+  type WeatherReading,
+} from "./domain";
 
-type WeatherReading = {
-  temperature_2m: number | null;
-  relative_humidity_2m: number | null;
-  wind_speed_10m: number | null;
-  weather_code: number | null;
-};
+export type { AssistantEnvironment, AssistantFamily, WeatherReading };
 type WeatherResult = {
   weather: WeatherReading | null;
   weatherStatus: "available" | "unavailable" | "error";
@@ -213,6 +217,7 @@ export const readHousehold = createServerFn({ method: "GET" })
     return data ? householdSchema.parse(data) : null;
   });
 
+const pollutantNameSchema = z.enum(["pm25", "pm10", "no2", "ozone", "co", "so2"]);
 const pollutantSchema = z.number().finite().nonnegative().nullable();
 const readingsSchema = z.object({
   pm25: pollutantSchema,
@@ -222,7 +227,18 @@ const readingsSchema = z.object({
   co: pollutantSchema,
   so2: pollutantSchema,
 });
-const pollutantNameSchema = z.enum(["pm25", "pm10", "no2", "ozone", "co", "so2"]);
+const weatherSchema = z.object({
+  temperature_2m: z.number().finite().nullable(),
+  relative_humidity_2m: z.number().finite().nullable(),
+  wind_speed_10m: z.number().finite().nonnegative().nullable(),
+  weather_code: z.number().int().nonnegative().nullable(),
+});
+const assistantPointSchema = z.object({
+  time: z.string().max(40),
+  aqi: z.number().finite().nonnegative().nullable(),
+  dominantPollutant: pollutantNameSchema.nullable(),
+  readings: readingsSchema,
+});
 const assistantEnvironmentSchema = z.object({
   source: z.literal("Open-Meteo CAMS model forecast"),
   location: z.object({
@@ -231,33 +247,20 @@ const assistantEnvironmentSchema = z.object({
     lon: z.number().min(-180).max(180),
   }),
   updatedAt: z.string().nullable(),
-  current: z
-    .object({
-      time: z.string().max(40),
-      aqi: z.number().finite().nonnegative().nullable(),
-      dominantPollutant: pollutantNameSchema.nullable(),
-      readings: readingsSchema,
-    })
-    .nullable(),
-  forecast: z
-    .array(
-      z.object({
-        time: z.string().max(40),
-        aqi: z.number().finite().nonnegative().nullable(),
-        dominantPollutant: pollutantNameSchema.nullable(),
-        readings: readingsSchema,
-      }),
-    )
-    .max(24),
-  weather: z
-    .object({
-      temperature_2m: z.number().finite().nullable(),
-      relative_humidity_2m: z.number().finite().nullable(),
-      wind_speed_10m: z.number().finite().nonnegative().nullable(),
-      weather_code: z.number().int().nonnegative().nullable(),
-    })
-    .nullable(),
+  current: assistantPointSchema.nullable(),
+  forecast: z.array(assistantPointSchema).max(24),
+  weather: weatherSchema.nullable(),
 });
+const assistantFamilySchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  children: z.number().int().min(0).max(20),
+  adults: z.number().int().min(1).max(20),
+  seniors: z.number().int().min(0).max(20),
+  commute: z.enum(["car", "metro", "cycling", "carpool"]),
+  exercise: z.enum(["walking", "running", "yoga"]),
+});
+
+export { assistantEnvironmentSchema, assistantFamilySchema };
 
 export const askAssistant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -271,14 +274,7 @@ export const askAssistant = createServerFn({ method: "POST" })
         .max(20),
       language: z.enum(["en", "hi"]),
       environment: assistantEnvironmentSchema,
-      family: z.object({
-        name: z.string().trim().min(1).max(80),
-        children: z.number().int().min(0).max(20),
-        adults: z.number().int().min(1).max(20),
-        seniors: z.number().int().min(0).max(20),
-        commute: z.enum(["car", "metro", "cycling", "carpool"]),
-        exercise: z.enum(["walking", "running", "yoga"]),
-      }),
+      family: assistantFamilySchema,
     }),
   )
   .handler(async ({ data }) => {

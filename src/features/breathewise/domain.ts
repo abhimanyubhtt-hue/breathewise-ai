@@ -148,6 +148,72 @@ export function planDailyActivity(hours: Hour[], exercise: Exercise, vulnerable:
     : { mode: "indoor" as const, exercise, time: null, aqi: null, dominantPollutant: null };
 }
 
+export type WeatherReading = {
+  temperature_2m: number | null;
+  relative_humidity_2m: number | null;
+  wind_speed_10m: number | null;
+  weather_code: number | null;
+};
+
+export type AssistantEnvironment = {
+  source: "Open-Meteo CAMS model forecast";
+  location: { name: string; lat: number; lon: number };
+  updatedAt: string | null;
+  current: {
+    time: string;
+    aqi: number | null;
+    dominantPollutant: Pollutant | null;
+    readings: PollutantReadings;
+  } | null;
+  forecast: {
+    time: string;
+    aqi: number | null;
+    dominantPollutant: Pollutant | null;
+    readings: PollutantReadings;
+  }[];
+  weather: WeatherReading | null;
+};
+
+export type AssistantFamily = {
+  name: string;
+  children: number;
+  adults: number;
+  seniors: number;
+  commute: keyof typeof factors;
+  exercise: Exercise;
+};
+
+export function buildAssistantEnvironment(args: {
+  cityName: string;
+  cityLat: number;
+  cityLon: number;
+  hours: Hour[];
+  updatedAt: string | null;
+  weather: WeatherReading | null;
+}): AssistantEnvironment {
+  const toPoint = (hour: Hour) => ({
+    time: hour.time,
+    aqi: hour.aqi,
+    dominantPollutant: hour.dominantPollutant,
+    readings: {
+      pm25: hour.pm25,
+      pm10: hour.pm10,
+      no2: hour.no2,
+      ozone: hour.ozone,
+      co: hour.co,
+      so2: hour.so2,
+    },
+  });
+  return {
+    source: "Open-Meteo CAMS model forecast",
+    location: { name: args.cityName, lat: args.cityLat, lon: args.cityLon },
+    updatedAt: args.updatedAt,
+    current: args.hours[0] ? toPoint(args.hours[0]) : null,
+    forecast: args.hours.slice(0, 24).map(toPoint),
+    weather: args.weather,
+  };
+}
+
 export type Message = { role: "user" | "assistant"; content: string };
 export type Household = {
   name: string;

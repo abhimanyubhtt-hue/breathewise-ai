@@ -45,7 +45,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useBreathe } from "./context";
-import { aqiStatus, bestWindow, emissions, factors, type Message } from "./domain";
+import {
+  aqiStatus,
+  bestWindow,
+  buildAssistantEnvironment,
+  emissions,
+  factors,
+  type Message,
+} from "./domain";
 import { askAssistant } from "./data.functions";
 export function PageHeading({
   title,
@@ -278,7 +285,7 @@ function AirCard() {
 function MapPinSmall() {
   return <span className="mini-pin">⌖</span>;
 }
-function WeatherCard() {
+export function WeatherCard() {
   const { environment, t } = useBreathe();
   const w = environment.data?.weather;
   return (
@@ -290,11 +297,11 @@ function WeatherCard() {
       <div className="weather-main">
         <div>
           <strong>
-            {w ? Math.round(w.temperature_2m) : "—"}
+            {w && w.temperature_2m !== null ? Math.round(w.temperature_2m) : "—"}
             <span>°C</span>
           </strong>
           <p>
-            {w
+            {w && w.weather_code !== null
               ? w.weather_code <= 1
                 ? t("Mostly clear", "मुख्यतः साफ")
                 : t("Cloudy conditions", "बादल")
@@ -1050,8 +1057,7 @@ export function Impact() {
   );
 }
 export function Assistant() {
-  const { household, setHousehold, persist, city, language, environment, user, t } = useBreathe();
-  const [input, setInput] = useState("");
+  const { household, setHousehold, persist, city, language, environment, user, t } = useBreathe();  const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const ask = useServerFn(askAssistant);
@@ -1080,14 +1086,23 @@ export function Assistant() {
       const result = await ask({
         data: {
           messages: messages.slice(-20),
-          city: city.name,
           language,
-          environment: JSON.stringify({
-            hours: environment.data?.hours.slice(0, 24),
-            family: { children: household.children, seniors: household.seniors },
-            source: "Open-Meteo model forecast",
-            error: environment.data?.error,
+          environment: buildAssistantEnvironment({
+            cityName: city.name,
+            cityLat: city.lat,
+            cityLon: city.lon,
+            hours: environment.data?.hours ?? [],
+            updatedAt: environment.data?.updated ?? null,
+            weather: environment.data?.weather ?? null,
           }),
+          family: {
+            name: household.name,
+            children: household.children,
+            adults: household.adults,
+            seniors: household.seniors,
+            commute: household.commute,
+            exercise: household.exercise,
+          },
         },
       });
       if (result.error) {
